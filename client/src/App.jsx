@@ -1,121 +1,96 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { socket } from './socket';
 
-function App() {
-  const [count, setCount] = useState(0)
+import Auth from './pages/Auth';
+import Portal from './pages/Portal';
+import DashboardLayout from './pages/DashboardLayout';
+import Dashboard from './pages/Dashboard';
+import Squad from './pages/Squad';
+import Tactics from './pages/Tactics';
+import Market from './pages/Market';
+
+export default function App() {
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || 'null'));
+  
+  // Active Room state
+  const [activeRoom, setActiveRoom] = useState(localStorage.getItem('activeRoom'));
+  const [activeManager, setActiveManager] = useState(localStorage.getItem('activeManager'));
+
+  useEffect(() => {
+    if (activeRoom && activeManager && token) {
+      socket.connect();
+      socket.emit('join_room', activeRoom);
+    }
+    return () => {
+      socket.disconnect();
+    }
+  }, [activeRoom, activeManager, token]);
+
+  const handleAuthSuccess = (newToken, newUser) => {
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(newUser));
+    setToken(newToken);
+    setUser(newUser);
+  };
+
+  const handleGlobalLogout = () => {
+    localStorage.clear(); // Clears everything including room
+    setToken(null);
+    setUser(null);
+    setActiveRoom(null);
+    setActiveManager(null);
+    socket.disconnect();
+  };
+
+  const handleSelectRoom = (roomCode, managerId) => {
+    localStorage.setItem('activeRoom', roomCode);
+    localStorage.setItem('activeManager', managerId);
+    setActiveRoom(roomCode);
+    setActiveManager(managerId);
+  };
+
+  const handleLeaveRoom = () => {
+    localStorage.removeItem('activeRoom');
+    localStorage.removeItem('activeManager');
+    setActiveRoom(null);
+    setActiveManager(null);
+    socket.disconnect();
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <Router>
+      <Routes>
+        {/* If no token -> Auth */}
+        <Route 
+          path="/" 
+          element={!token ? <Auth onAuthSuccess={handleAuthSuccess} /> : <Navigate to={activeRoom ? "/dashboard" : "/portal"} />} 
+        />
+        
+        {/* Portal: requires token, but no active room */}
+        <Route 
+          path="/portal" 
+          element={
+            token ? (
+              activeRoom ? <Navigate to="/dashboard" /> : <Portal user={user} token={token} onSelectRoom={handleSelectRoom} onGlobalLogout={handleGlobalLogout} />
+            ) : <Navigate to="/" />
+          } 
+        />
+        
+        {/* Active game: requires token AND active room */}
+        {token && activeRoom ? (
+          <Route path="/" element={<DashboardLayout onLogout={handleLeaveRoom} />}>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="plantel" element={<Squad />} />
+            <Route path="tactica" element={<Tactics />} />
+            <Route path="mercado" element={<Market />} />
+            <Route path="*" element={<Navigate to="/dashboard" />} />
+          </Route>
+        ) : (
+          <Route path="*" element={<Navigate to={token ? "/portal" : "/"} />} />
+        )}
+      </Routes>
+    </Router>
+  );
 }
-
-export default App

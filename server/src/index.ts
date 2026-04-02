@@ -9,6 +9,7 @@ import { setupSocket } from './socket';
 import { db } from './db';
 import roomRoutes from './routes/rooms';
 import tacticsRoutes from './routes/tactics';
+import authRoutes from './routes/auth';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Game Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/tactics', tacticsRoutes);
 
