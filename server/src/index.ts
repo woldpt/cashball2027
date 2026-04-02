@@ -10,6 +10,8 @@ import { db } from './db';
 import roomRoutes from './routes/rooms';
 import tacticsRoutes from './routes/tactics';
 import authRoutes from './routes/auth';
+import marketRoutes from './routes/market';
+import { startMarketLoop } from './engine/marketLoop';
 
 dotenv.config();
 
@@ -38,6 +40,10 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/tactics', tacticsRoutes);
+app.use('/api/market', marketRoutes);
+
+// Start Background loops
+startMarketLoop();
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {

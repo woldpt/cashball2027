@@ -13,6 +13,8 @@ const socket_1 = require("./socket");
 const rooms_1 = __importDefault(require("./routes/rooms"));
 const tactics_1 = __importDefault(require("./routes/tactics"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const market_1 = __importDefault(require("./routes/market"));
+const marketLoop_1 = require("./engine/marketLoop");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -35,6 +37,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', auth_1.default);
 app.use('/api/rooms', rooms_1.default);
 app.use('/api/tactics', tactics_1.default);
+app.use('/api/market', market_1.default);
+// Start Background loops
+(0, marketLoop_1.startMarketLoop)();
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
