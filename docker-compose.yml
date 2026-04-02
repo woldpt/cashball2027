@@ -23,7 +23,8 @@ services:
       - ./client:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:3000
+      - PROXY_TARGET=http://server:3000
+      - CHOKIDAR_USEPOLLING=true
     command: npm run dev
     networks:
       cftunnel:

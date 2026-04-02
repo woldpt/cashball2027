@@ -11,13 +11,16 @@ export default defineConfig({
   server: {
     allowedHosts: ['cashball.namek.link'],
     host: true,
+    watch: {
+      usePolling: true,
+    },
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: process.env.PROXY_TARGET || 'http://localhost:3000',
         changeOrigin: true
       },
       '/socket.io': {
-        target: 'http://localhost:3000',
+        target: process.env.PROXY_TARGET || 'http://localhost:3000',
         ws: true
       }
     }
