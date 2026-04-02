@@ -1,56 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// Mock data until hooked with API
-const mockPlayers = [
-  {
-    id: 1,
-    name: "Rui Patrício",
-    position: "GR",
-    quality: 44,
-    salary: 4400,
-    aggressiveness: 2,
-    craque: false,
-  },
-  {
-    id: 2,
-    name: "João Pereira",
-    position: "DEF",
-    quality: 38,
-    salary: 3800,
-    aggressiveness: 4,
-    craque: false,
-  },
-  {
-    id: 3,
-    name: "Pepe",
-    position: "DEF",
-    quality: 49,
-    salary: 4900,
-    aggressiveness: 5,
-    craque: false,
-  },
-  {
-    id: 4,
-    name: "Bruno Fernandes",
-    position: "MED",
-    quality: 50,
-    salary: 5000,
-    aggressiveness: 3,
-    craque: true,
-  },
-  {
-    id: 5,
-    name: "Cristiano Ronaldo",
-    position: "ATA",
-    quality: 50,
-    salary: 50000,
-    aggressiveness: 2,
-    craque: true,
-  },
-];
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 export default function Squad() {
-  const [players] = useState(mockPlayers);
+  const [players, setPlayers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchSquad = async () => {
+      try {
+        const roomId = localStorage.getItem("activeRoom");
+        const token = localStorage.getItem("token");
+
+        if (!roomId) {
+          setError("Sem sala ativa");
+          return;
+        }
+
+        const res = await fetch(
+          `${API_URL}/api/tactics/squad?roomId=${roomId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (!res.ok) {
+          throw new Error("Falha ao carregar plantel");
+        }
+
+        const data = await res.json();
+        setPlayers(data.players || []);
+      } catch (err) {
+        setError(err.message || "Erro ao carregar plantel");
+        setPlayers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSquad();
+  }, []);
+
+  if (loading)
+    return <div className="text-slate-400">Carregando plantel...</div>;
+  if (error) return <div className="text-red-400">❌ {error}</div>;
 
   return (
     <div className="space-y-6">

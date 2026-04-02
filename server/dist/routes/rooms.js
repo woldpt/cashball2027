@@ -4,6 +4,7 @@ const express_1 = require("express");
 const db_1 = require("../db");
 const auth_1 = require("./auth");
 const seed_1 = require("../db/seed");
+const calendar_1 = require("../engine/calendar");
 const router = (0, express_1.Router)();
 function generateRoomCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -41,6 +42,8 @@ router.post('/create', async (req, res) => {
         try {
             // Seed 32 clubs + players for this room
             await (0, seed_1.seedRoomData)(roomId);
+            // Generate match schedule for all divisions
+            await (0, calendar_1.generateSchedule)(roomId);
             // Assign the founder a random Division 4 club from THIS room
             db_1.db.get('SELECT id, name FROM clubs WHERE division = 4 AND room_id = ? ORDER BY RANDOM() LIMIT 1', [roomId], (err, club) => {
                 if (err || !club)
@@ -135,6 +138,31 @@ router.delete('/:code', (req, res) => {
                 res.json({ message: 'Room deleted' });
             });
         });
+    });
+});
+// Get matches for a room (current week or all)
+router.get('/matches', (req, res) => {
+    const roomId = req.query.roomId;
+    const week = req.query.week; // optional: filter by week
+    if (!roomId)
+        return res.status(400).json({ error: 'Missing roomId' });
+    let query = `
+    SELECT m.*, c1.name as home_club_name, c2.name as away_club_name
+    FROM matches m
+    JOIN clubs c1 ON m.home_club_id = c1.id
+    JOIN clubs c2 ON m.away_club_id = c2.id
+    WHERE m.room_id = ?
+  `;
+    const params = [roomId];
+    if (week) {
+        query += ` AND m.week = ?`;
+        params.push(week);
+    }
+    query += ` ORDER BY m.week ASC, m.id ASC`;
+    db_1.db.all(query, params, (err, rows) => {
+        if (err)
+            return res.status(500).json({ error: 'DB error' });
+        res.json({ matches: rows || [] });
     });
 });
 exports.default = router;

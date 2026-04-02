@@ -25,6 +25,11 @@ async function startMatchLoop(roomId, week) {
         });
         if (matches.length === 0)
             return finishMatchLoop(roomId, week);
+        // Mark all matches as LIVE
+        const matchIds = matches.map((m) => m.id);
+        await new Promise((resolve) => {
+            db_1.db.run(`UPDATE matches SET status = 'LIVE' WHERE id IN (${matchIds.join(',')})`, () => resolve());
+        });
         // 2. We will just simulate match by match and collect events.
         // In a real app we need to fetch the 11 starting players for each club.
         // For simplicity of this MVP timeline, we simulate with dummy team stats OR fetch players.
