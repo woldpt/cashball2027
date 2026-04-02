@@ -20,6 +20,7 @@ app.use(cors());
 app.use(express.json());
 
 // API Rate limiting
+app.set('trust proxy', 1);
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
