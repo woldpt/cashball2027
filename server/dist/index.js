@@ -12,6 +12,7 @@ const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const socket_1 = require("./socket");
 const rooms_1 = __importDefault(require("./routes/rooms"));
 const tactics_1 = __importDefault(require("./routes/tactics"));
+const auth_1 = __importDefault(require("./routes/auth"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -31,6 +32,7 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'CashBall Server is running' });
 });
 // Game Routes
+app.use('/api/auth', auth_1.default);
 app.use('/api/rooms', rooms_1.default);
 app.use('/api/tactics', tactics_1.default);
 const PORT = process.env.PORT || 3000;

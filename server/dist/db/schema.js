@@ -2,13 +2,22 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.schemaSQL = void 0;
 exports.schemaSQL = `
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS rooms (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   code TEXT UNIQUE NOT NULL,
   current_season INTEGER DEFAULT 1,
   current_week INTEGER DEFAULT 1,
   game_state TEXT DEFAULT 'PRE_EPOCA',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  founder_id INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(founder_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS clubs (
@@ -25,12 +34,12 @@ CREATE TABLE IF NOT EXISTS clubs (
 
 CREATE TABLE IF NOT EXISTS managers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
   club_id INTEGER,
   status TEXT DEFAULT 'ACTIVE',
   is_founder BOOLEAN DEFAULT 0,
   room_id INTEGER,
+  FOREIGN KEY(user_id) REFERENCES users(id),
   FOREIGN KEY(club_id) REFERENCES clubs(id),
   FOREIGN KEY(room_id) REFERENCES rooms(id)
 );

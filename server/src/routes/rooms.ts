@@ -108,6 +108,25 @@ router.post('/join', (req: any, res) => {
   });
 });
 
+// Start the Tournament (if founder)
+router.post('/:code/start', (req: any, res) => {
+  const userId = req.user.id;
+  const roomCode = req.params.code;
+
+  db.get('SELECT id, founder_id, game_state FROM rooms WHERE code = ?', [roomCode.toUpperCase()], (err, room: any) => {
+    if (err || !room) return res.status(404).json({ error: 'Room not found' });
+    if (room.founder_id !== userId) return res.status(403).json({ error: 'Only the founder can start the season' });
+    if (room.game_state !== 'PRE_EPOCA') return res.status(400).json({ error: 'Season already started or invalid state' });
+
+    // Dynamic import to avoid circular dependencies if any
+    const { generateSchedule } = require('../engine/calendar');
+    
+    generateSchedule(room.id)
+      .then(() => res.json({ message: 'Season started! Calendar generated.' }))
+      .catch((e: Error) => res.status(500).json({ error: e.message }));
+  });
+});
+
 // Delete Room
 router.delete('/:code', (req: any, res) => {
   const userId = req.user.id;

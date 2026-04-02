@@ -7,6 +7,13 @@ import { db } from './db';
 // - Tactic submission notifications
 // - Match event streaming
 
+let ioInstance: Server;
+
+export function getIo(): Server {
+  if (!ioInstance) throw new Error('Socket.io not initialized yet');
+  return ioInstance;
+}
+
 export function setupSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, {
     cors: {
@@ -14,6 +21,7 @@ export function setupSocket(httpServer: HttpServer) {
       methods: ['GET', 'POST']
     }
   });
+  ioInstance = io;
 
   io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);

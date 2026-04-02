@@ -2,49 +2,82 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const db_1 = require("../db");
-const index_1 = require("../index"); // we'll use this to broadcast
+const auth_1 = require("./auth");
+const ai_1 = require("../engine/ai");
+const matchLoop_1 = require("../engine/matchLoop");
 const router = (0, express_1.Router)();
-// Submit a tactic for a given match
+router.use(auth_1.authMiddleware);
 router.post('/submit', (req, res) => {
-    const { roomId, matchId, clubId, formation, style, startingEleven, subs } = req.body;
-    if (!matchId || !clubId)
-        return res.status(400).json({ error: 'Missing parameters' });
-    // Update tactics DB
-    db_1.db.run(`UPDATE tactics SET 
-      formation = ?, style = ?, starting_eleven = ?, subs = ?, submitted = 1
-     WHERE match_id = ? AND club_id = ?`, [formation, style, JSON.stringify(startingEleven), JSON.stringify(subs), matchId, clubId], function (err) {
-        if (err)
-            return res.status(500).json({ error: 'Error submitting tactic' });
-        if (this.changes === 0) {
-            // If it didn't exist we should insert, but usually matches/tactics rows are pre-generated
-            db_1.db.run(`INSERT INTO tactics (match_id, club_id, formation, style, starting_eleven, subs, submitted)
-           VALUES (?, ?, ?, ?, ?, ?, 1)`, [matchId, clubId, formation, style, JSON.stringify(startingEleven), JSON.stringify(subs)], (err2) => {
-                if (err2)
-                    return res.status(500).json({ error: 'Error inserting tactic' });
-                checkMatchReady(roomId, matchId);
-                return res.json({ success: true });
+    const userId = req.user.id;
+    const { roomId, formation, style, starting_eleven, subs } = req.body;
+    if (!roomId || !formation)
+        return res.status(400).json({ error: 'Missing params' });
+    // 1. Get the room's current week & state
+    db_1.db.get('SELECT current_week, game_state FROM rooms WHERE id = ?', [roomId], (err, room) => {
+        if (err || !room)
+            return res.status(404).json({ error: 'Room err' });
+        if (room.game_state !== 'IN_PROGRESS' && room.game_state !== 'PRE_MATCH') {
+            return res.status(400).json({ error: 'Game is not waiting for tactics right now.' });
+        }
+        // 2. Identify the active club of this user
+        db_1.db.get('SELECT club_id FROM managers WHERE room_id = ? AND user_id = ? AND status = ?', [roomId, userId, 'ACTIVE'], (err, manager) => {
+            if (err || !manager)
+                return res.status(403).json({ error: 'Not an active manager in this room' });
+            const clubId = manager.club_id;
+            const currentWeek = room.current_week;
+            // 3. Find the match ID for this club in the current week
+            db_1.db.get('SELECT id FROM matches WHERE room_id = ? AND week = ? AND (home_club_id = ? OR away_club_id = ?)', [roomId, currentWeek, clubId, clubId], (err, match) => {
+                if (err || !match)
+                    return res.status(400).json({ error: 'No match for you this week (calendar empty?)' });
+                const matchId = match.id;
+                db_1.db.serialize(() => {
+                    db_1.db.run('BEGIN TRANSACTION');
+                    // Update or insert tactic
+                    db_1.db.get('SELECT id FROM tactics WHERE match_id = ? AND club_id = ?', [matchId, clubId], (err, existingTactic) => {
+                        if (existingTactic) {
+                            db_1.db.run('UPDATE tactics SET formation = ?, style = ?, starting_eleven = ?, subs = ?, submitted = 1 WHERE id = ?', [formation, style, JSON.stringify(starting_eleven || []), JSON.stringify(subs || []), existingTactic.id]);
+                        }
+                        else {
+                            db_1.db.run('INSERT INTO tactics (match_id, club_id, formation, style, submitted, starting_eleven, subs) VALUES (?, ?, ?, ?, 1, ?, ?)', [matchId, clubId, formation, style, JSON.stringify(starting_eleven || []), JSON.stringify(subs || [])]);
+                        }
+                        db_1.db.run('COMMIT', async (err) => {
+                            if (err)
+                                return res.status(500).json({ error: 'DB commit error' });
+                            res.json({ message: 'Tactic submitted successfully.' });
+                            // Gate Logic: Check if all HUMAN managers submitted
+                            checkGateAndExecute(roomId, currentWeek);
+                        });
+                    });
+                });
             });
-        }
-        else {
-            checkMatchReady(roomId, matchId);
-            res.json({ success: true });
-        }
+        });
     });
 });
-// Check if all human/active coaches for a specific week/match have submitted
-function checkMatchReady(roomId, matchId) {
-    // Notify room that someone submitted
-    index_1.io.to(String(roomId)).emit('tactic_submitted', { matchId });
-    // Here we would ideally check if all matches for the current_week have tactics submitted
-    // If yes, we trigger the simulation loop for the whole round!
-    // Example query:
-    // SELECT COUNT(*) as pending FROM tactics WHERE match_id IN (SELECT id FROM matches WHERE week = X) AND submitted = 0
-    // Real implementation of the loop checking goes here 
-    // For prototype logic, we can emit a placeholder indicating match ready
-    setTimeout(() => {
-        console.log(`Checking if match ${matchId} in room ${roomId} is ready...`);
-        // Example: Trigger simulation
-        // io.to(String(roomId)).emit('simulation_started', { matchId });
-    }, 1000);
+async function checkGateAndExecute(roomId, week) {
+    // Get count of active human managers
+    db_1.db.get('SELECT COUNT(*) as c FROM managers WHERE room_id = ? AND status = ?', [roomId, 'ACTIVE'], (err, row) => {
+        if (err || !row)
+            return;
+        const humanCount = row.c;
+        // Get count of submitted tactics by humans this week
+        db_1.db.get(`
+      SELECT COUNT(*) as c 
+      FROM tactics t
+      JOIN managers m ON m.club_id = t.club_id
+      WHERE t.match_id IN (SELECT id FROM matches WHERE room_id = ? AND week = ?)
+      AND m.room_id = ? AND m.status = 'ACTIVE'
+      AND t.submitted = 1
+    `, [roomId, week, roomId], async (err, rowT) => {
+            const submittedCount = rowT ? rowT.c : 0;
+            console.log(`✅ Room ${roomId} Week ${week} Gate Check: ${submittedCount} / ${humanCount}`);
+            if (submittedCount >= humanCount) {
+                // TRIGGER CORE ENGINE!
+                console.log(`🚀 All humans ready! Triggering AutoAI and Match Loop for Room ${roomId}`);
+                await (0, ai_1.autoSubmitAITactics)(roomId, week);
+                // This runs asynchronously in background, emitting websockets
+                (0, matchLoop_1.startMatchLoop)(roomId, week);
+            }
+        });
+    });
 }
 exports.default = router;
