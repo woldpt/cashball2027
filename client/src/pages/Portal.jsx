@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { LogOut, Plus, LogIn, Trash2, ShieldAlert } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -8,6 +7,7 @@ export default function Portal({ user, token, onSelectRoom, onGlobalLogout }) {
   const [loading, setLoading] = useState(true);
   const [joinCode, setJoinCode] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [joinMode, setJoinMode] = useState(false);
 
   const fetchRooms = useCallback(async () => {
     try {
@@ -69,7 +69,10 @@ export default function Portal({ user, token, onSelectRoom, onGlobalLogout }) {
       });
       const data = await res.json();
       if (!res.ok) alert(data.error);
-      else fetchRooms();
+      else {
+        fetchRooms();
+        setJoinMode(false);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -78,7 +81,8 @@ export default function Portal({ user, token, onSelectRoom, onGlobalLogout }) {
     }
   };
 
-  const handleDeleteRoom = async (code) => {
+  const handleDeleteRoom = async (e, code) => {
+    e.stopPropagation();
     if (!confirm("Eliminar sala permanentemente?")) return;
     try {
       const res = await fetch(`${API_URL}/api/rooms/${code}`, {
@@ -96,145 +100,211 @@ export default function Portal({ user, token, onSelectRoom, onGlobalLogout }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-slate-200 p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
-        <header className="flex justify-between items-center bg-[#161b22] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full pointer-events-none"></div>
-          <div>
-            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-              Portal CashBall
+    <div className="bg-background text-on-background font-body selection:bg-primary selection:text-on-primary min-h-screen">
+      {/* Background Layering */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 tactical-pattern"></div>
+        <div className="absolute inset-0 pitch-glow"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background"></div>
+      </div>
+
+      {/* Main Content Canvas */}
+      <main className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6 lg:p-12">
+        {/* Branding Header */}
+        <header className="mb-12 text-center w-full max-w-6xl flex flex-col md:flex-row items-center justify-between">
+          <div className="text-left">
+            <h1 className="font-headline text-5xl md:text-6xl font-bold tracking-tighter text-tertiary mb-1 text-shadow-sm">
+              CASHBALL 2027
             </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Sessão iniciada como{" "}
-              <strong className="text-emerald-500">{user.username}</strong>
-            </p>
+            <p className="font-label text-primary tracking-[0.3em] uppercase text-[10px] font-bold">Elite Management Simulation</p>
           </div>
-          <button
-            onClick={onGlobalLogout}
-            className="flex items-center text-slate-400 hover:text-red-400 transition-colors text-sm font-semibold"
-          >
-            Sair da Conta <LogOut className="w-4 h-4 ml-2" />
-          </button>
+          <div className="mt-4 md:mt-0 flex items-center gap-3 bg-surface-container px-4 py-2 rounded-md border border-outline-variant/20">
+            <span className="material-symbols-outlined text-outline">person</span>
+            <div className="flex flex-col text-left">
+              <span className="text-[10px] uppercase font-bold text-outline tracking-wider">TREINADOR</span>
+              <span className="text-sm font-bold text-on-surface">{user.username}</span>
+            </div>
+          </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 space-y-4">
-            <h2 className="text-xl font-bold flex items-center">
-              As Minhas Salas
-              <span className="ml-3 bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded">
-                {rooms.length} Activas
-              </span>
-            </h2>
-
-            {loading ? (
-              <div className="p-10 text-center text-slate-500 animate-pulse border border-slate-800/50 rounded-xl bg-[#161b22]/50">
-                A carregar salas...
+        {/* Layout Grid: 7/12 and 5/12 Pattern */}
+        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Left Column: Hero & Primary Actions */}
+          <div className="lg:col-span-7 flex flex-col gap-6">
+            {/* Hero Section */}
+            <div className="relative h-[300px] md:h-[400px] bg-surface-container rounded-md overflow-hidden group border border-outline-variant/10 shadow-xl">
+              <img 
+                alt="Cinematic stadium shot" 
+                className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-105 mix-blend-luminosity" 
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6qtRbu4lK6mEZRDChj2y9qn1uxGsR6G0seR3WQTPcosDz_Qquof0PicL6IzyZvgsn6jHfiOwx1jayOg5YRB-O0wpETWTiGnwQA8-5oomd-7d5PplONnwrzTlOBDHamHfTpHpuU2fvgZaCrCsvuc8d5RB0ysc5VtgXECFW-H6szrM9bEV263PEaYsVtNxYuvP9665hWoryzJ4gituyYXuQralUH3WKUskTQDqFxjYOfqiXUSJhJVpN5a6pylF9oNi8Wb0KiZ1llCj-"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
+              
+              <div className="absolute bottom-8 left-8">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="bg-primary text-on-primary font-headline px-2 py-1 text-sm font-bold uppercase tracking-widest">Portal Oficial</span>
+                  <span className="text-on-surface-variant font-label text-[10px] uppercase tracking-wider">v2.0 Build 2027</span>
+                </div>
+                <h2 className="font-headline text-3xl md:text-4xl text-on-surface font-bold tracking-tight">O TEU LEGADO COMEÇA AQUI</h2>
               </div>
-            ) : rooms.length === 0 ? (
-              <div className="p-10 text-center text-slate-500 border border-slate-800/50 rounded-xl bg-[#161b22]/50">
-                Não estás em nenhuma sala. Cria uma nova ou junta-te com código!
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {rooms.map((room) => (
-                  <div
-                    key={room.id}
-                    className="group bg-[#161b22] border border-slate-800 rounded-xl p-5 hover:border-emerald-500/50 transition-all flex flex-col justify-between shadow-lg relative overflow-hidden"
-                  >
-                    <div className="mb-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-mono text-xs text-slate-500">
-                          CÓDIGO:{" "}
-                          <strong className="text-slate-300">
-                            {room.code}
-                          </strong>
-                        </span>
-                        <span className="bg-emerald-900/30 text-emerald-400 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded">
-                          Activa
-                        </span>
-                      </div>
-                      <div className="text-xl font-black text-slate-200">
-                        {room.club_name}
-                      </div>
-                      <div className="text-xs text-slate-400 mt-1">
-                        Treinador Principal{" "}
-                        {room.is_founder ? "(Fundador)" : ""}
-                      </div>
-                    </div>
+            </div>
 
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() =>
-                          onSelectRoom(room.id, room.code, room.manager_id)
-                        }
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-emerald-950 font-bold py-2 rounded-lg text-sm transition-colors text-center"
-                      >
-                        Continuar Jogo
-                      </button>
-
-                      {room.is_founder === 1 && (
-                        <button
-                          onClick={() => handleDeleteRoom(room.code)}
-                          className="px-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-transparent hover:border-red-500/30 rounded-lg transition-colors flex items-center justify-center"
-                          title="Eliminar Sala Permanentemente"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Action Pane */}
-          <div className="space-y-6">
-            <div className="bg-[#161b22] border border-slate-800 rounded-xl p-6 shadow-lg">
-              <h3 className="font-bold text-slate-200 mb-4 flex items-center">
-                <Plus className="w-5 h-5 mr-2 text-emerald-500" /> Nova
-                Simulação
-              </h3>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                Gera uma sala isolada e recebe um código para convidar até 7
-                amigos.
-              </p>
-              <button
+            {/* Primary Menu Buttons */}
+            <nav className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button 
                 onClick={handleCreateRoom}
                 disabled={actionLoading}
-                className="w-full bg-[#0d1117] hover:bg-slate-800 text-emerald-400 border border-emerald-900/50 hover:border-emerald-500 transition-all font-bold py-3 rounded-lg text-sm"
+                className="group relative flex flex-col items-start justify-between p-6 bg-primary text-on-primary rounded-md transition-all active:scale-[0.98] text-left shadow-lg overflow-hidden disabled:opacity-50"
               >
-                Gerar Sala Nova
+                <div className="absolute -right-4 -top-4 bg-on-primary/10 w-24 h-24 rounded-full blur-xl group-hover:bg-on-primary/20 transition-all"></div>
+                <span className="material-symbols-outlined text-4xl mb-4 relative z-10">sports_soccer</span>
+                <div className="relative z-10">
+                  <p className="font-headline text-2xl font-bold tracking-tighter mb-1">CRIAR SALA</p>
+                  <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Inicia uma simulação nova</p>
+                </div>
               </button>
-            </div>
-
-            <div className="bg-[#161b22] border border-slate-800 rounded-xl p-6 shadow-lg">
-              <h3 className="font-bold text-slate-200 mb-4 flex items-center">
-                <LogIn className="w-5 h-5 mr-2 text-cyan-500" /> Juntar com
-                Código
-              </h3>
-              <form onSubmit={handleJoinRoom} className="space-y-3">
-                <input
-                  type="text"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  placeholder="EX: ABCDEF"
-                  maxLength={6}
-                  required
-                  className="w-full bg-[#0d1117] border border-slate-700 text-slate-200 rounded-lg p-3 text-sm font-mono font-bold uppercase tracking-widest text-center focus:border-cyan-500 focus:outline-none transition-all"
-                />
-                <button
-                  type="submit"
-                  disabled={actionLoading || !joinCode}
-                  className="w-full bg-cyan-600 hover:bg-cyan-500 text-cyan-950 disabled:opacity-50 font-bold py-3 rounded-lg text-sm transition-all"
+              
+              {!joinMode ? (
+                <button 
+                  onClick={() => setJoinMode(true)}
+                  className="group relative flex flex-col items-start justify-between p-6 bg-surface-container-high border border-outline-variant/15 text-on-surface rounded-md hover:bg-surface-bright transition-all active:scale-[0.98] text-left"
                 >
-                  Entrar na Sala
+                  <span className="material-symbols-outlined text-4xl mb-4 text-tertiary">group_add</span>
+                  <div>
+                    <p className="font-headline text-2xl font-bold tracking-tighter mb-1">JUNTAR CÓDIGO</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Acede à sala de um amigo</p>
+                  </div>
                 </button>
-              </form>
-            </div>
+              ) : (
+                <div className="p-6 bg-surface-container-high border border-primary text-on-surface rounded-md flex flex-col justify-between">
+                  <form onSubmit={handleJoinRoom} className="space-y-4 w-full h-full flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                         <p className="font-headline text-xl font-bold tracking-tighter">CÓDIGO DE ACESSO</p>
+                         <button type="button" onClick={() => setJoinMode(false)} className="text-outline hover:text-on-surface"><span className="material-symbols-outlined text-sm">close</span></button>
+                      </div>
+                      <input
+                        type="text"
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                        placeholder="EX: ABCDEF"
+                        maxLength={6}
+                        required
+                        autoFocus
+                        className="w-full bg-surface-container border border-outline-variant/30 text-on-surface rounded-md p-3 text-lg font-mono font-bold uppercase tracking-widest text-center focus:border-primary focus:outline-none transition-all"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={actionLoading || !joinCode}
+                      className="w-full bg-surface-bright hover:bg-primary hover:text-on-primary text-on-surface disabled:opacity-50 font-bold py-2 rounded-sm text-xs tracking-widest uppercase transition-all"
+                    >
+                      CONFIRMAR O CÓDIGO
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              <button 
+                onClick={onGlobalLogout}
+                className="col-span-1 sm:col-span-2 group relative flex items-center p-4 bg-surface-container-low border border-outline-variant/10 text-outline rounded-md hover:bg-error-container/10 hover:border-error/30 hover:text-error transition-all active:scale-[0.99] text-left"
+              >
+                <span className="material-symbols-outlined text-2xl mr-4">logout</span>
+                <div>
+                  <p className="font-headline font-bold text-sm tracking-widest uppercase">SAIR DA CONTA GLOBAL</p>
+                </div>
+              </button>
+            </nav>
+          </div>
+
+          {/* Right Column: Load Game & Stats */}
+          <div className="lg:col-span-5 flex flex-col gap-6">
+            
+            {/* Save Game Module */}
+            <section className="bg-surface-container-low rounded-md overflow-hidden border border-outline-variant/15 flex flex-col h-[500px]">
+              <div className="bg-surface-container-high px-6 py-4 flex justify-between items-center shrink-0 border-b border-outline-variant/10">
+                <h3 className="font-headline text-on-surface font-bold tracking-tight text-lg uppercase flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                  SALAS ACTIVAS
+                </h3>
+                <span className="material-symbols-outlined text-outline text-sm">cloud_sync</span>
+              </div>
+              
+              <div className="p-2 flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-1 relative">
+                {loading ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="material-symbols-outlined animate-spin text-tertiary text-4xl">autorenew</span>
+                  </div>
+                ) : rooms.length === 0 ? (
+                   <div className="flex flex-col items-center justify-center h-full text-outline opacity-50 p-6 text-center">
+                      <span className="material-symbols-outlined text-4xl mb-2">sports_esports</span>
+                      <p className="text-xs font-bold uppercase tracking-widest">NENHUMA SALA ENCONTRADA</p>
+                      <p className="text-[10px] mt-2">Cria uma nova sala ou junta-te a amigos para começar.</p>
+                   </div>
+                ) : (
+                  rooms.map((room, index) => (
+                    <div key={room.id}>
+                      <div 
+                        onClick={() => onSelectRoom(room.id, room.code, room.manager_id)}
+                        className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 hover:bg-surface-bright/50 transition-colors cursor-pointer rounded-sm border border-transparent hover:border-outline-variant/20 relative overflow-hidden"
+                      >
+                        {/* Hover accent */}
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary transform -translate-x-full group-hover:translate-x-0 transition-transform"></div>
+                        
+                        <div className="h-12 w-12 shrink-0 bg-surface-container rounded-sm flex items-center justify-center border border-outline-variant/10">
+                           <span className="material-symbols-outlined text-outline group-hover:text-tertiary transition-colors">shield</span>
+                        </div>
+                        
+                        <div className="flex-1 min-w-0 pr-8">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-headline text-on-surface font-bold text-base leading-none truncate group-hover:text-primary transition-colors">
+                              {room.club_name}
+                            </h4>
+                            {room.is_founder === 1 && (
+                              <span className="text-[8px] bg-tertiary/20 text-tertiary-fixed border border-tertiary/30 px-1 py-0.5 rounded-sm uppercase font-black uppercase" title="Fundador da Sala">FUNDADOR</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] bg-surface-container-lowest px-1.5 py-0.5 rounded-sm text-outline font-bold border border-outline-variant/10">
+                              CÓDIGO: {room.code}
+                            </span>
+                            <span className="text-[10px] text-outline font-medium flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[10px]">update</span> Activo
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Action icons */}
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                           {room.is_founder === 1 && (
+                             <button 
+                               onClick={(e) => handleDeleteRoom(e, room.code)}
+                               className="text-outline opacity-0 group-hover:opacity-100 hover:text-error transition-all p-1"
+                               title="Eliminar Sala"
+                             >
+                               <span className="material-symbols-outlined text-sm">delete</span>
+                             </button>
+                           )}
+                           <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center group-hover:bg-primary group-hover:text-on-primary transition-colors">
+                             <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                           </div>
+                        </div>
+                      </div>
+                      
+                      {index < rooms.length - 1 && (
+                        <div className="h-[1px] mx-4 bg-outline-variant/10"></div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
