@@ -62,10 +62,10 @@ function seedRoomData(roomId) {
                         playerInserts.push(pp);
                     }
                 };
-                generatePlayers(2, 'GR');
-                generatePlayers(6, 'DEF');
-                generatePlayers(6, 'MED');
-                generatePlayers(4, 'ATA');
+                generatePlayers(3, 'GR');
+                generatePlayers(7, 'DEF');
+                generatePlayers(8, 'MED');
+                generatePlayers(6, 'ATA');
             });
             return Promise.all(playerInserts);
         })
@@ -104,10 +104,10 @@ function runSeed() {
                     playerStmt.run([randomName(), clubId, position, q, salary, ag, craque]);
                 }
             };
-            generatePlayers(2, 'GR');
-            generatePlayers(6, 'DEF');
-            generatePlayers(6, 'MED');
-            generatePlayers(4, 'ATA');
+            generatePlayers(3, 'GR');
+            generatePlayers(7, 'DEF');
+            generatePlayers(8, 'MED');
+            generatePlayers(6, 'ATA');
         });
         clubStmt.finalize();
         playerStmt.finalize();
