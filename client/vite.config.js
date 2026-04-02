@@ -16,11 +16,11 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.PROXY_TARGET || 'http://localhost:3000',
+        target: process.env.PROXY_TARGET || 'http://127.0.0.1:3000',
         changeOrigin: true
       },
       '/socket.io': {
-        target: process.env.PROXY_TARGET || 'http://localhost:3000',
+        target: process.env.PROXY_TARGET || 'http://127.0.0.1:3000',
         ws: true
       }
     }
