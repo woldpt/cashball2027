@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { simulateHalfTime, TeamStats, PlayerStats } from './simulation';
 import { getIo } from '../socket';
+import { processMatchRevenue, processWeeklyFinances } from './finances';
 
 /**
  * Executes a full live match week for a given room.
@@ -143,6 +144,9 @@ async function finalizeMatches(liveMatchesDataH2: any[]) {
         const allEvts = [...h1.events, ...h2.events];
 
         stmt.run(totalHome, totalAway, 'COMPLETED', JSON.stringify(allEvts), m.matchId);
+        
+        // 🎫 Financial Hook: Calculate tickets
+        processMatchRevenue(m.homeStats.isHome ? m.homeStats.clubId : m.awayStats.clubId, totalHome, totalAway).catch(console.error);
       }
 
       stmt.finalize();
@@ -152,7 +156,10 @@ async function finalizeMatches(liveMatchesDataH2: any[]) {
 }
 
 function finishMatchLoop(roomId: number, week: number) {
-  return new Promise<void>((resolve) => {
+  return new Promise<void>(async (resolve) => {
+    // 💼 Financial Hook: End of Week Salaries & Loans
+    await processWeeklyFinances(roomId).catch(console.error);
+    
     // Setup for next week. Game State resets. Week increments.
     db.run(`UPDATE rooms SET game_state = 'PRE_MATCH', current_week = ? WHERE id = ?`, [week + 1, roomId], () => {
       resolve();

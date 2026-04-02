@@ -4,6 +4,7 @@ exports.startMatchLoop = startMatchLoop;
 const db_1 = require("../db");
 const simulation_1 = require("./simulation");
 const socket_1 = require("../socket");
+const finances_1 = require("./finances");
 /**
  * Executes a full live match week for a given room.
  */
@@ -130,6 +131,8 @@ async function finalizeMatches(liveMatchesDataH2) {
                 const totalAway = h1.scoreB + h2.scoreB;
                 const allEvts = [...h1.events, ...h2.events];
                 stmt.run(totalHome, totalAway, 'COMPLETED', JSON.stringify(allEvts), m.matchId);
+                // 🎫 Financial Hook: Calculate tickets
+                (0, finances_1.processMatchRevenue)(m.homeStats.isHome ? m.homeStats.clubId : m.awayStats.clubId, totalHome, totalAway).catch(console.error);
             }
             stmt.finalize();
             db_1.db.run('COMMIT', () => resolve());
@@ -137,7 +140,9 @@ async function finalizeMatches(liveMatchesDataH2) {
     });
 }
 function finishMatchLoop(roomId, week) {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+        // 💼 Financial Hook: End of Week Salaries & Loans
+        await (0, finances_1.processWeeklyFinances)(roomId).catch(console.error);
         // Setup for next week. Game State resets. Week increments.
         db_1.db.run(`UPDATE rooms SET game_state = 'PRE_MATCH', current_week = ? WHERE id = ?`, [week + 1, roomId], () => {
             resolve();
