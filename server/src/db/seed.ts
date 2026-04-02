@@ -24,23 +24,30 @@ function randomName() {
  */
 export function seedRoomData(roomId: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      db.run('BEGIN TRANSACTION');
+    const clubInserts: Promise<number>[] = [];
 
-      const clubStmt = db.prepare('INSERT INTO clubs (name, division, balance, room_id) VALUES (?, ?, ?, ?)');
-      const playerStmt = db.prepare('INSERT INTO players (name, club_id, position, quality, salary, aggressiveness, craque) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    for (const club of clubsData) {
+      const initialBalance = Math.floor(1000000 / club.division);
+      
+      const p = new Promise<number>((res, rej) => {
+        db.run(
+          'INSERT INTO clubs (name, division, balance, room_id) VALUES (?, ?, ?, ?)',
+          [club.name, club.division, initialBalance, roomId],
+          function(err) {
+            if (err) return rej(err);
+            res(this.lastID);
+          }
+        );
+      });
+      clubInserts.push(p);
+    }
 
-      // We need to track club IDs as they are inserted
-      let insertedCount = 0;
-      const totalClubs = clubsData.length;
+    Promise.all(clubInserts)
+      .then((clubIds) => {
+        const playerInserts: Promise<void>[] = [];
 
-      clubsData.forEach((club: any) => {
-        const initialBalance = Math.floor(1000000 / club.division);
-        
-        clubStmt.run([club.name, club.division, initialBalance, roomId], function(this: any, err: any) {
-          if (err) { console.error('Seed club error:', err); return; }
-          
-          const clubId = this.lastID;
+        clubIds.forEach((clubId, index) => {
+          const club = clubsData[index];
           const baseQuality = 50 - (club.division * 10);
 
           const generatePlayers = (count: number, position: string) => {
@@ -52,7 +59,15 @@ export function seedRoomData(roomId: number): Promise<void> {
               if ((position === 'MED' || position === 'ATA') && Math.random() < 0.1) {
                 craque = 1;
               }
-              playerStmt.run([randomName(), clubId, position, q, salary, ag, craque]);
+
+              const pp = new Promise<void>((res, rej) => {
+                db.run(
+                  'INSERT INTO players (name, club_id, position, quality, salary, aggressiveness, craque) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                  [randomName(), clubId, position, q, salary, ag, craque],
+                  (err) => { if (err) rej(err); else res(); }
+                );
+              });
+              playerInserts.push(pp);
             }
           };
 
@@ -60,20 +75,18 @@ export function seedRoomData(roomId: number): Promise<void> {
           generatePlayers(6, 'DEF');
           generatePlayers(6, 'MED');
           generatePlayers(4, 'ATA');
-
-          insertedCount++;
-          if (insertedCount === totalClubs) {
-            clubStmt.finalize();
-            playerStmt.finalize();
-            db.run('COMMIT', (err) => {
-              if (err) return reject(err);
-              console.log(`[SEED] Room ${roomId}: ${totalClubs} clubs and players seeded.`);
-              resolve();
-            });
-          }
         });
+
+        return Promise.all(playerInserts);
+      })
+      .then(() => {
+        console.log(`[SEED] Room ${roomId}: ${clubsData.length} clubs and players seeded.`);
+        resolve();
+      })
+      .catch((err) => {
+        console.error('[SEED] Error:', err);
+        reject(err);
       });
-    });
   });
 }
 
@@ -82,7 +95,7 @@ export function runSeed() {
   db.serialize(() => {
     db.run("DELETE FROM players");
     db.run("DELETE FROM clubs");
-    console.log('Seeding clubs and players (legacy mode, no room_id)...');
+    console.log('Seeding clubs and players (legacy mode)...');
 
     const clubStmt = db.prepare('INSERT INTO clubs (name, division, balance) VALUES (?, ?, ?)');
     const playerStmt = db.prepare('INSERT INTO players (name, club_id, position, quality, salary, aggressiveness, craque) VALUES (?, ?, ?, ?, ?, ?, ?)');

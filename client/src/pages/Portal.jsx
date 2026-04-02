@@ -37,8 +37,14 @@ export default function Portal({ user, token, onSelectRoom, onGlobalLogout }) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
-      if (res.ok) fetchRooms();
+      const data = await res.json();
+      if (res.ok) {
+        fetchRooms();
+      } else {
+        alert(data.error || 'Erro ao criar sala');
+      }
     } catch (e) {
+      alert('Erro de ligação ao servidor');
       console.error(e);
     } finally {
       setActionLoading(false);
