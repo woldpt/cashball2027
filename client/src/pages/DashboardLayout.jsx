@@ -1,5 +1,4 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UserCog, BadgeEuro, Trophy, CalendarDays, LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { socket } from '../socket';
 import LiveMatch from './LiveMatch';
@@ -8,23 +7,25 @@ export default function DashboardLayout({ onLogout }) {
   const [liveOverlay, setLiveOverlay] = useState(false);
   const roomId = localStorage.getItem('activeRoom');
   const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
     const handleMatchPrep = () => setLiveOverlay(true);
     socket.on('match_prep_started', handleMatchPrep);
     return () => socket.off('match_prep_started', handleMatchPrep);
   }, []);
+
   const navItems = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Resumo" },
-    { to: "/plantel", icon: Users, label: "Plantel" },
-    { to: "/tactica", icon: UserCog, label: "Formação & Táctica" },
-    { to: "/mercado", icon: BadgeEuro, label: "Mercado Transf." },
-    { to: "/competicoes", icon: Trophy, label: "Competições", disabled: true },
-    { to: "/financas", icon: CalendarDays, label: "Finanças", disabled: true },
+    { to: "/dashboard", icon: "dashboard", label: "Dashboard" },
+    { to: "/plantel", icon: "groups", label: "Squad" },
+    { to: "/tactica", icon: "strategy", label: "Tactics" },
+    { to: "/mercado", icon: "search", label: "Scouting" },
+    { to: "/competicoes", icon: "leaderboard", label: "League", disabled: true },
+    { to: "/financas", icon: "payments", label: "Finances", disabled: true },
   ];
 
   return (
-    <div className="flex h-screen bg-[#0d1117] text-slate-300 font-mono overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
       {liveOverlay && (
         <LiveMatch 
           roomId={roomId} 
@@ -33,67 +34,111 @@ export default function DashboardLayout({ onLogout }) {
         />
       )}
       
-      {/* Sidebar */}
-      <aside className="w-64 flex flex-col bg-[#161b22] border-r border-slate-800 shrink-0 relative z-20">
-        <div className="flex items-center h-16 px-6 border-b border-slate-800 bg-[#0d1117]/50">
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></div>
-            CashBall
-          </h1>
+      {/* SideNavBar */}
+      <aside className="hidden md:flex flex-col h-full w-64 bg-[#1C1B1B] mr-[0.5rem] py-6 gap-2">
+        <div className="px-6 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <img 
+              alt="Manager Portrait" 
+              className="w-10 h-10 rounded-md object-cover bg-surface-container-highest" 
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZfbD3TYrjaTnZ5c2KllSdIdK0mje5aEHkpGI5nYQzSXtY7GxULBV1-6S9I7omKq1no6Ta54fYjx8FX-ByYpBw3q8LNO1wVPHd7SyO-jO8dMlypgMhgivKD8eBdO1V8ZZLgjpGuVNYBAodCc6b63pSVRm2hZAL4U9hv-0aCMFkRzpRWjz2AiAD-6ugF6jdkZdY-ME5pRpFomibJtLsaQPIWqPcDFvSpzIR7Htfeto0TixFCbkoPhv6b6_kbNrMe8KkGyoUIb916xNQ"
+            />
+            <div className="flex flex-col">
+              <span className="font-headline text-lg font-bold text-[#95D4B3]">{user.username || 'Manager'}</span>
+              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Elite Manager</span>
+            </div>
+          </div>
         </div>
 
-        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest px-3 mb-4">Gestão</div>
+        <nav className="flex flex-col gap-1 px-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               title={item.disabled ? "Brevemente" : ""}
               className={({ isActive }) => `
-                group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all
+                px-4 py-3 flex items-center gap-3 transition-transform 
                 ${item.disabled 
-                  ? 'opacity-40 cursor-not-allowed grayscale' 
+                  ? 'opacity-40 cursor-not-allowed grayscale text-[#E5E2E1]/70' 
                   : isActive 
-                    ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-500/20 shadow-[inset_4px_0_0_rgba(16,185,129,1)]' 
-                    : 'text-slate-400 hover:bg-[#0d1117] hover:text-slate-200 hover:border hover:border-slate-800 border border-transparent'
+                    ? 'bg-[#201F1F] text-[#E9C349] rounded-md border-l-4 border-[#95D4B3] active:translate-x-1' 
+                    : 'text-[#E5E2E1]/70 hover:bg-[#201F1F] hover:text-[#95D4B3] transition-all'
                 }
               `}
               onClick={(e) => item.disabled && e.preventDefault()}
             >
-              <item.icon className={`mr-3 h-5 w-5 flex-shrink-0 ${item.disabled ? '' : 'group-hover:scale-110'} transition-transform duration-200`} />
-              {item.label}
+              <span className="material-symbols-outlined">{item.icon}</span>
+              <span className="font-medium">{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        {/* Footer Area */}
-        <div className="p-4 border-t border-slate-800 bg-[#0d1117]/30">
-          <div className="bg-[#0d1117] rounded-lg p-3 border border-slate-800 mb-3 shadow-inner">
-            <div className="text-xs text-slate-500 mb-1 flex justify-between">
-              <span>SALA</span>
-              <span className="font-bold text-slate-300">{localStorage.getItem('roomCode')}</span>
-            </div>
-          </div>
+        <div className="mt-auto px-6">
           <button
             onClick={onLogout}
-            className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-400 rounded-lg hover:bg-red-900/20 transition-colors group border border-transparent hover:border-red-900/50"
+            className="flex items-center w-full px-3 py-2 text-sm font-medium text-error rounded-lg hover:bg-error-container/20 transition-colors group mb-4"
           >
-            <LogOut className="mr-3 h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-            Sair da Sala
+             <span className="material-symbols-outlined mr-3 text-error">logout</span>
+             Sair da Sala
           </button>
+          
+          <div className="bg-surface-container rounded-md p-4 mb-4">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Sala Ativa</span>
+              <span className="text-[10px] font-headline text-tertiary">{localStorage.getItem('roomCode')}</span>
+            </div>
+            <div className="w-full bg-surface-bright h-1 rounded-full overflow-hidden">
+              <div className="bg-primary h-full w-[100%]"></div>
+            </div>
+          </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative overflow-hidden bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjMGQxMTE3Ij48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIgc3Ryb2tlPSIjMTYxYjIyIiBzdHJva2Utd2lkdGg9IjEiPjwvcGF0aD4KPC9zdmc+')] bg-repeat">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0d1117]/95 via-[#0d1117]/80 to-[#161b22]/90 pointer-events-none"></div>
-          
-          <div className="relative z-10 flex-1 overflow-y-auto w-full p-8">
-            <div className="max-w-6xl mx-auto backdrop-blur-sm bg-[#161b22]/40 border border-slate-800/80 rounded-2xl shadow-xl p-8 min-h-[calc(100vh-4rem)] relative">
-              {/* Outlet renders the current route's component */}
-              <Outlet />
-            </div>
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar relative">
+        <div className="absolute inset-0 pitch-glow pointer-events-none"></div>
+
+        {/* TopAppBar */}
+        <header className="sticky top-0 z-50 bg-[#1C1B1B] mb-[0.5rem] flex justify-between items-center w-full px-6 h-16 shrink-0 border-b border-[#131313]/50">
+          <div className="flex items-center gap-8">
+            <span className="text-xl font-black text-[#E9C349] tracking-tighter font-headline uppercase flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+              CASHBALL
+            </span>
+            <nav className="hidden lg:flex items-center gap-6">
+               {/* Contextual navigation could be shown here depending on the page */}
+            </nav>
           </div>
+          <div className="flex items-center gap-4">
+            <div className="bg-surface-container px-4 py-1.5 rounded-md flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#E9C349] text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+              <span className="font-headline font-bold text-sm tracking-tight text-[#95D4B3]">£42.5M</span>
+            </div>
+            <button className="bg-primary text-on-primary font-headline font-bold uppercase tracking-tighter px-6 py-2 rounded-md hover:bg-opacity-90 active:scale-95 transition-all text-sm shadow-[0_0_15px_rgba(149,212,179,0.3)]">
+              Next Match
+            </button>
+          </div>
+        </header>
+
+        {/* Outlet wrapper for routes */}
+        <div className="relative z-10 w-full h-fit">
+          <Outlet />
+        </div>
+        
+        {/* Bottom Navigation (Mobile Only) */}
+        <nav className="md:hidden sticky bottom-0 w-full bg-surface/80 backdrop-blur-xl flex justify-around py-3 px-6 z-50 border-t border-outline-variant/10">
+          {navItems.map((item) => (
+             <NavLink
+               key={item.to}
+               to={item.to}
+               onClick={(e) => item.disabled && e.preventDefault()}
+               className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-[#E9C349]' : 'text-on-surface/60'} ${item.disabled ? 'opacity-40' : ''}`}
+             >
+                <span className="material-symbols-outlined">{item.icon}</span>
+                <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+             </NavLink>
+          ))}
+        </nav>
       </main>
     </div>
   );
