@@ -49,12 +49,15 @@ export async function startMatchLoop(roomId: number, week: number) {
     await new Promise(r => setTimeout(r, 30000)); // wait 30 seconds
 
     // Calculate 2nd Half
-    const liveMatchesDataH2 = liveMatchesData.map((m: any) => {
-      const half2 = simulateHalfTime(m.homeStats, m.awayStats, 0, 45);
+    const liveMatchesDataH2 = await Promise.all(liveMatchesData.map(async (m: any) => {
+      const homeStats2 = await buildTeamStats(m.homeStats.isHome ? m.homeStats.clubId : m.awayStats.clubId, m.matchId, true);
+      const awayStats2 = await buildTeamStats(m.homeStats.isHome ? m.awayStats.clubId : m.homeStats.clubId, m.matchId, false);
+      
+      const half2 = simulateHalfTime(homeStats2, awayStats2, 0, 45);
       // Offset minutes
-      half2.events.forEach(e => e.minute += 45);
+      half2.events.forEach((e: any) => e.minute += 45);
       return { ...m, half2 };
-    });
+    }));
 
     // Start 2nd Half broadcast
     await broadcastHalf(roomId, liveMatchesDataH2, 46, 90, 'half2');
@@ -96,6 +99,7 @@ async function buildTeamStats(clubId: number, matchId: number, isHome: boolean):
 
   return {
     players,
+    clubId,
     formation: tactic?.formation || '4-4-2',
     style: tactic?.style || 'EQUILIBRADO',
     moral: club?.moral || 50,

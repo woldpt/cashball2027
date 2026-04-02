@@ -1,7 +1,19 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, UserCog, BadgeEuro, Trophy, CalendarDays, LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { socket } from '../socket';
+import LiveMatch from './LiveMatch';
 
 export default function DashboardLayout({ onLogout }) {
+  const [liveOverlay, setLiveOverlay] = useState(false);
+  const roomId = localStorage.getItem('activeRoom');
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    const handleMatchPrep = () => setLiveOverlay(true);
+    socket.on('match_prep_started', handleMatchPrep);
+    return () => socket.off('match_prep_started', handleMatchPrep);
+  }, []);
   const navItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Resumo" },
     { to: "/plantel", icon: Users, label: "Plantel" },
@@ -13,6 +25,14 @@ export default function DashboardLayout({ onLogout }) {
 
   return (
     <div className="flex h-screen bg-[#0d1117] text-slate-300 font-mono overflow-hidden">
+      {liveOverlay && (
+        <LiveMatch 
+          roomId={roomId} 
+          token={token} 
+          onMatchEnd={() => setLiveOverlay(false)} 
+        />
+      )}
+      
       {/* Sidebar */}
       <aside className="w-64 flex flex-col bg-[#161b22] border-r border-slate-800 shrink-0 relative z-20">
         <div className="flex items-center h-16 px-6 border-b border-slate-800 bg-[#0d1117]/50">
