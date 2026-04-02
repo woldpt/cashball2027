@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LogIn, UserPlus } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function Auth({ onAuthSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -39,7 +39,7 @@ export default function Auth({ onAuthSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
+    <div className="h-full w-full bg-[#0d1117] flex items-center justify-center p-4">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none"></div>
 
       <div className="max-w-md w-full bg-[#161b22]/80 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-10 transition-all duration-300 hover:shadow-emerald-900/20">

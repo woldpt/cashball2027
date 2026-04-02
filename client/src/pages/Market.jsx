@@ -2,7 +2,7 @@ import { Search, Gavel, HandCoins, ExternalLink } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { socket } from '../socket';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function Market() {
   const [transfers, setTransfers] = useState([]);
