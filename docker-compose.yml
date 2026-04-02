@@ -1,4 +1,4 @@
-version: '3.8'
+---
 services:
   server:
     build:
@@ -25,3 +25,10 @@ services:
     environment:
       - VITE_API_URL=http://localhost:3000
     command: npm run dev
+    networks:
+      cftunnel:
+        ipv4_address: 172.100.0.57
+
+networks:
+  cftunnel:
+    external: true
