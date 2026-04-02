@@ -46,12 +46,14 @@ async function startMatchLoop(roomId, week) {
         (0, socket_1.getIo)().to(roomId.toString()).emit('halftime', { duration: 30 });
         await new Promise(r => setTimeout(r, 30000)); // wait 30 seconds
         // Calculate 2nd Half
-        const liveMatchesDataH2 = liveMatchesData.map((m) => {
-            const half2 = (0, simulation_1.simulateHalfTime)(m.homeStats, m.awayStats, 0, 45);
+        const liveMatchesDataH2 = await Promise.all(liveMatchesData.map(async (m) => {
+            const homeStats2 = await buildTeamStats(m.homeStats.isHome ? m.homeStats.clubId : m.awayStats.clubId, m.matchId, true);
+            const awayStats2 = await buildTeamStats(m.homeStats.isHome ? m.awayStats.clubId : m.homeStats.clubId, m.matchId, false);
+            const half2 = (0, simulation_1.simulateHalfTime)(homeStats2, awayStats2, 0, 45);
             // Offset minutes
-            half2.events.forEach(e => e.minute += 45);
+            half2.events.forEach((e) => e.minute += 45);
             return { ...m, half2 };
-        });
+        }));
         // Start 2nd Half broadcast
         await broadcastHalf(roomId, liveMatchesDataH2, 46, 90, 'half2');
         // Finalize
@@ -90,6 +92,7 @@ async function buildTeamStats(clubId, matchId, isHome) {
     }
     return {
         players,
+        clubId,
         formation: tactic?.formation || '4-4-2',
         style: tactic?.style || 'EQUILIBRADO',
         moral: club?.moral || 50,

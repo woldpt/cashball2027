@@ -7,6 +7,7 @@ export interface PlayerStats {
 
 export interface TeamStats {
   players: PlayerStats[];
+  clubId?: number;
   formation: string;
   style: string; // DEFENSIVO, EQUILIBRADO, OFENSIVO
   moral: number;

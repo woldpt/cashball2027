@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LogOut, Plus, LogIn, Trash2, ShieldAlert } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function Portal({ user, token, onSelectRoom, onGlobalLogout }) {
   const [rooms, setRooms] = useState([]);
@@ -132,7 +132,7 @@ export default function Portal({ user, token, onSelectRoom, onGlobalLogout }) {
                     
                     <div className="flex space-x-2">
                       <button 
-                        onClick={() => onSelectRoom(room.code, room.manager_id)}
+                        onClick={() => onSelectRoom(room.id, room.code, room.manager_id)}
                         className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-emerald-950 font-bold py-2 rounded-lg text-sm transition-colors text-center"
                       >
                         Continuar Jogo

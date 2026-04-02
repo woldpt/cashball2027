@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db';
 import { authMiddleware } from './auth';
+import { seedRoomData } from '../db/seed';
 
 const router = Router();
 
@@ -32,38 +33,43 @@ router.get('/my-rooms', (req: any, res) => {
 });
 
 // Create a room
-router.post('/create', (req: any, res) => {
+router.post('/create', async (req: any, res) => {
   const userId = req.user.id;
   const roomCode = generateRoomCode();
   
-  db.serialize(() => {
-    db.run(
-      'INSERT INTO rooms (code, founder_id) VALUES (?, ?)',
-      [roomCode, userId],
-      function (err) {
-        if (err) return res.status(500).json({ error: 'Error creating room' });
-        const roomId = this.lastID;
+  db.run(
+    'INSERT INTO rooms (code, founder_id) VALUES (?, ?)',
+    [roomCode, userId],
+    async function (err) {
+      if (err) return res.status(500).json({ error: 'Error creating room' });
+      const roomId = this.lastID;
 
-        // Assign a team from Division 4
+      try {
+        // Seed 32 clubs + players for this room
+        await seedRoomData(roomId);
+
+        // Assign the founder a random Division 4 club from THIS room
         db.get(
-          'SELECT id, name FROM clubs WHERE division = 4 ORDER BY RANDOM() LIMIT 1',
+          'SELECT id, name FROM clubs WHERE division = 4 AND room_id = ? ORDER BY RANDOM() LIMIT 1',
+          [roomId],
           (err, club: any) => {
-            if (err || !club) return res.status(500).json({ error: 'No available clubs' });
+            if (err || !club) return res.status(500).json({ error: 'No available clubs after seed' });
             
-            // Assign manager founder attached to user_id
             db.run(
               'INSERT INTO managers (user_id, club_id, is_founder, room_id) VALUES (?, ?, 1, ?)',
               [userId, club.id, roomId],
               function(err) {
                 if (err) return res.status(500).json({ error: 'Error creating manager' });
-                res.json({ message: 'Room created', roomCode, managerId: this.lastID, club });
+                res.json({ message: 'Room created', roomCode, roomId, managerId: this.lastID, club });
               }
             );
           }
         );
+      } catch (e) {
+        return res.status(500).json({ error: 'Seed failed' });
       }
-    );
-  });
+    }
+  );
 });
 
 // Join a room
@@ -85,13 +91,13 @@ router.post('/join', (req: any, res) => {
         if (err) return res.status(500).json({ error: 'Server error' });
         if (row.count >= 8) return res.status(403).json({ error: 'Room is full (max 8 humans)' });
 
-        // Find available div 4 club
+        // Find available div 4 club from THIS ROOM
         db.get(`
           SELECT c.id, c.name FROM clubs c 
-          WHERE c.division = 4 
+          WHERE c.division = 4 AND c.room_id = ?
           AND c.id NOT IN (SELECT club_id FROM managers WHERE room_id = ?)
           ORDER BY RANDOM() LIMIT 1
-        `, [roomId], (err, club: any) => {
+        `, [roomId, roomId], (err, club: any) => {
           if (err || !club) return res.status(500).json({ error: 'No available clubs' });
 
           db.run(
@@ -118,7 +124,6 @@ router.post('/:code/start', (req: any, res) => {
     if (room.founder_id !== userId) return res.status(403).json({ error: 'Only the founder can start the season' });
     if (room.game_state !== 'PRE_EPOCA') return res.status(400).json({ error: 'Season already started or invalid state' });
 
-    // Dynamic import to avoid circular dependencies if any
     const { generateSchedule } = require('../engine/calendar');
     
     generateSchedule(room.id)
@@ -140,10 +145,11 @@ router.delete('/:code', (req: any, res) => {
     }
 
     db.serialize(() => {
-      // In a real app we'd have ON DELETE CASCADE or clean up associated tables
       db.run('DELETE FROM tactics WHERE match_id IN (SELECT id FROM matches WHERE room_id = ?)', [room.id]);
       db.run('DELETE FROM matches WHERE room_id = ?', [room.id]);
+      db.run('DELETE FROM players WHERE club_id IN (SELECT id FROM clubs WHERE room_id = ?)', [room.id]);
       db.run('DELETE FROM managers WHERE room_id = ?', [room.id]);
+      db.run('DELETE FROM clubs WHERE room_id = ?', [room.id]);
       db.run('DELETE FROM rooms WHERE id = ?', [room.id], (err) => {
         if (err) return res.status(500).json({ error: 'Error deleting room' });
         res.json({ message: 'Room deleted' });

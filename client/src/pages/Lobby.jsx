@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LogIn, Key, PlusCircle } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export default function Lobby({ onLogin }) {
   const [isJoin, setIsJoin] = useState(true);

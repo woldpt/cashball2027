@@ -53,6 +53,34 @@ router.post('/submit', (req, res) => {
         });
     });
 });
+router.post('/substitute', (req, res) => {
+    const userId = req.user.id;
+    const { roomId, formation, style } = req.body;
+    if (!roomId || !style)
+        return res.status(400).json({ error: 'Missing params' });
+    db_1.db.get('SELECT current_week, game_state FROM rooms WHERE id = ?', [roomId], (err, room) => {
+        if (err || !room)
+            return res.status(404).json({ error: 'Room err' });
+        // Substitutions only allowed during MATCH_DAY_LIVE (specifically at halftime pause)
+        if (room.game_state !== 'MATCH_DAY_LIVE') {
+            return res.status(400).json({ error: 'Substitutions are only allowed during the live match.' });
+        }
+        db_1.db.get('SELECT club_id FROM managers WHERE room_id = ? AND user_id = ? AND status = ?', [roomId, userId, 'ACTIVE'], (err, manager) => {
+            if (err || !manager)
+                return res.status(403).json({ error: 'Unauthorized' });
+            const clubId = manager.club_id;
+            db_1.db.get('SELECT id FROM matches WHERE room_id = ? AND week = ? AND (home_club_id = ? OR away_club_id = ?)', [roomId, room.current_week, clubId, clubId], (err, match) => {
+                if (err || !match)
+                    return res.status(400).json({ error: 'No live match found' });
+                db_1.db.run('UPDATE tactics SET formation = ?, style = ? WHERE match_id = ? AND club_id = ?', [formation, style, match.id, clubId], (err) => {
+                    if (err)
+                        return res.status(500).json({ error: 'DB Error' });
+                    res.json({ message: 'Tactic updated for 2nd half!' });
+                });
+            });
+        });
+    });
+});
 async function checkGateAndExecute(roomId, week) {
     // Get count of active human managers
     db_1.db.get('SELECT COUNT(*) as c FROM managers WHERE room_id = ? AND status = ?', [roomId, 'ACTIVE'], (err, row) => {

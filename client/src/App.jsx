@@ -44,10 +44,11 @@ export default function App() {
     socket.disconnect();
   };
 
-  const handleSelectRoom = (roomCode, managerId) => {
-    localStorage.setItem('activeRoom', roomCode);
+  const handleSelectRoom = (roomId, roomCode, managerId) => {
+    localStorage.setItem('activeRoom', roomId);
+    localStorage.setItem('roomCode', roomCode);
     localStorage.setItem('activeManager', managerId);
-    setActiveRoom(roomCode);
+    setActiveRoom(roomId);
     setActiveManager(managerId);
   };
 
