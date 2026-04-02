@@ -27,6 +27,7 @@ services:
       - CHOKIDAR_USEPOLLING=true
     command: npm run dev
     networks:
+      default:
       cftunnel:
         ipv4_address: 172.100.0.57
 
