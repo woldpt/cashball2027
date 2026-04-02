@@ -71,10 +71,10 @@ export function seedRoomData(roomId: number): Promise<void> {
             }
           };
 
-          generatePlayers(2, 'GR');
-          generatePlayers(6, 'DEF');
-          generatePlayers(6, 'MED');
-          generatePlayers(4, 'ATA');
+          generatePlayers(3, 'GR');
+          generatePlayers(7, 'DEF');
+          generatePlayers(8, 'MED');
+          generatePlayers(6, 'ATA');
         });
 
         return Promise.all(playerInserts);
@@ -119,10 +119,10 @@ export function runSeed() {
         }
       };
 
-      generatePlayers(2, 'GR');
-      generatePlayers(6, 'DEF');
-      generatePlayers(6, 'MED');
-      generatePlayers(4, 'ATA');
+      generatePlayers(3, 'GR');
+      generatePlayers(7, 'DEF');
+      generatePlayers(8, 'MED');
+      generatePlayers(6, 'ATA');
     });
 
     clubStmt.finalize();

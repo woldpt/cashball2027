@@ -7,7 +7,7 @@
   {"name": "Beira-Mar", "division": 1},
   {"name": "Farense", "division": 1},
   {"name": "Estrela da Amadora", "division": 1},
-  
+
   {"name": "Naval", "division": 2},
   {"name": "Ovarense", "division": 2},
   {"name": "Varzim", "division": 2},
@@ -16,7 +16,7 @@
   {"name": "Montijo", "division": 2},
   {"name": "Barreirense", "division": 2},
   {"name": "Rio Ave", "division": 2},
-  
+
   {"name": "Chaves", "division": 3},
   {"name": "Campomaiorense", "division": 3},
   {"name": "Alverca", "division": 3},
@@ -25,13 +25,18 @@
   {"name": "Louletano", "division": 3},
   {"name": "Elvas", "division": 3},
   {"name": "Torreense", "division": 3},
-  
-  {"name": "Leca FC", "division": 4},
+
   {"name": "Lusitânia", "division": 4},
   {"name": "Operário", "division": 4},
   {"name": "Covilhã", "division": 4},
   {"name": "União de Santarém", "division": 4},
   {"name": "Feirense", "division": 4},
   {"name": "Olhanense", "division": 4},
-  {"name": "Portimonense", "division": 4}
+  {"name": "Portimonense", "division": 4},
+  {"name": "Atlético CP", "division": 4},
+
+  {"name": "Anadia FC", "division": 5},
+  {"name": "Coimbrões", "division": 5},
+  {"name": "Lusitano de Évora", "division": 5},
+  {"name": "Caldas SC", "division": 5}
 ]
